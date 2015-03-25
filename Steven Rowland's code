@@ -1,1 +1,631 @@
+#Data Import and Seperation
+comb.data=read.csv("All Combined.csv",header=T)
+comb.data$Obs=factor(comb.data$Obs)
+# comb.data$Obs=as.factor(comb.data$Obs)
+
+#Subset
+data.sub.a=comb.data[which(comb.data$Block=="A"),]
+data.sub.b=comb.data[which(comb.data$Block=="B"),]
+data.sub.c=comb.data[which(comb.data$Block=="C"),]
+data.sub.d=comb.data[which(comb.data$Block=="D"),]
+
+#This is somewhat irrelevant now except for block A seperation but left it in for now.
+
+#======================================
+#ILs & BILs
+
+plot.summary=function(x) {
+  x=na.omit(x)
+  y=mean(x)
+  sem=sd(x)/sqrt(length(x))
+  return(data.frame(
+    y=y,
+    ymin=y-sem,
+    ymax=y+sem
+    ))} ## I borrowed your function Julin, I hope this okay. Seemed easier than rewriting it myself.
+
+## BOXPLOTS
+ggplot(data.sub.a,aes(Obs,Photo,fill=Obs))+geom_boxplot()+facet_wrap(~Weeks)+theme(axis.text.x=element_text(angle=90))
+
+ggplot(data.sub.b,aes(Obs,Photo,fill=Obs))+geom_boxplot()+facet_wrap(~Weeks)+theme(axis.text.x=element_text(angle=90))
+
+ggplot(data.sub.c,aes(Obs,Photo,fill=Obs))+geom_boxplot()+facet_wrap(~Weeks)+theme(axis.text.x=element_text(angle=90))
+
+ggplot(data.sub.d,aes(Obs,Photo,fill=Obs))+geom_boxplot()+facet_wrap(~Weeks)+theme(axis.text.x=element_text(angle=90))
+
+##Combining Blocks B,C and D (because above box plots didn't look interesting)
+
+## COMBINED BLOCKS PLOT
+list=c("B","C","D")
+testset=droplevels(comb.data[comb.data$Block %in% list,])
+# testset=testset[testset$Weeks==13,]
+# levels(testset$Obs)
+ggplot(testset,aes(Obs,Photo,fill=Obs))+geom_boxplot()+theme(axis.text.x=element_text(angle=90))+facet_wrap(~Weeks)+guides(fill=guide_legend(ncol=2))
+# This is rather messy
+
+ggplot(testset,aes(Obs,Photo,fill=Obs))+stat_summary(fun.data=plot.summary,geom="bar")+stat_summary(fun.data=plot.summary,geom="errorbar")+facet_wrap(~ Weeks)+theme(axis.text.x  = element_text(angle=90, vjust=0.5))+guides(fill=guide_legend(ncol=2))#+stat_smooth(method="lm",se=F)
+
+#rather promising now with adjusted Photo values to per leaflet. BIL063, 118, 267, 338 and Penn are all down.
+
+## MODELS
+bdc=lmer(Photo~Obs+VpdA+(1|Row)+(1|Col)+(1|Date)+(1|Weeks),data=testset)
+summary(bdc)
+
+## Linear mixed model fit by REML t-tests use Satterthwaite approximations
+##   to degrees of freedom [merModLmerTest]
+## Formula: Photo ~ Obs + VpdA + (1 | Row) + (1 | Col) + (1 | Date) + (1 |  
+##     Weeks)
+##    Data: testset
+## 
+## REML criterion at convergence: 1250.7
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -2.2019 -0.6263 -0.1220  0.5706  4.1182 
+## 
+## Random effects:
+##  Groups   Name        Variance Std.Dev.
+##  Col      (Intercept) 0.16500  0.4062  
+##  Date     (Intercept) 0.04824  0.2196  
+##  Row      (Intercept) 0.00000  0.0000  
+##  Weeks    (Intercept) 0.03188  0.1785  
+##  Residual             3.95753  1.9894  
+## Number of obs: 301, groups:  Col, 57; Date, 6; Row, 5; Weeks, 2
+## 
+## Fixed effects:
+##                  Estimate Std. Error        df t value Pr(>|t|)    
+## (Intercept)      10.37853    0.72846  49.00000  14.247  < 2e-16 ***
+## ObsBIL 063       -0.53016    0.75719 276.69000  -0.700  0.48441    
+## ObsBIL 118       -1.16636    0.64274 264.53000  -1.815  0.07071 .  
+## ObsBIL 139        0.09290    0.71637 279.43000   0.130  0.89692    
+## ObsBIL 180       -0.53644    0.60702 247.21000  -0.884  0.37771    
+## ObsBIL 260       -0.04890    0.68989 272.84000  -0.071  0.94354    
+## ObsBIL 267       -1.54655    0.64504 267.22000  -2.398  0.01719 *  
+## ObsBIL 338       -1.71231    0.62773 244.72000  -2.728  0.00684 ** 
+## ObsBIL 342        0.75983    0.63677 269.99000   1.193  0.23382    
+## ObsBIL 378       -0.58448    0.58965 239.58000  -0.991  0.32257    
+## ObsIL 4-3        -0.69258    0.55895 275.93000  -1.239  0.21637    
+## ObsIL 5-4         0.18905    0.56079 273.80000   0.337  0.73629    
+## ObsIL 8-1-1      -0.06175    0.60199 246.32000  -0.103  0.91838    
+## ObsIL 9-1-2       0.15740    0.57800 261.35000   0.272  0.78559    
+## ObsPenn          -2.20400    0.68525 278.55000  -3.216  0.00145 ** 
+## ObsSub IL 4-3-4  -0.23117    0.60281 259.67000  -0.383  0.70168    
+## ObsSub IL 5-4-1   0.66545    0.72156 265.80000   0.922  0.35725    
+## ObsSub IL 8-1-2  -0.57443    0.68711 279.42000  -0.836  0.40387    
+## ObsSub IL 8-1-3  -0.18577    0.62084 241.04000  -0.299  0.76503    
+## VpdA             -1.77790    0.18182  85.98000  -9.779 1.33e-15 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Correlation of Fixed Effects:
+##             (Intr) OBIL06 OBIL11 OBIL13 OBIL18 OBIL260 OBIL267 OBIL33
+## ObsBIL 063  -0.019                                                   
+## ObsBIL 118   0.023  0.137                                            
+## ObsBIL 139  -0.096  0.115  0.128                                     
+## ObsBIL 180  -0.270  0.097  0.105  0.120                              
+## ObsBIL 260  -0.161  0.089  0.103  0.106  0.143                       
+## ObsBIL 267  -0.271  0.088  0.097  0.111  0.168  0.127                
+## ObsBIL 338  -0.250  0.095  0.104  0.116  0.181  0.136   0.169        
+## ObsBIL 342  -0.053  0.104  0.128  0.108  0.115  0.110   0.108   0.109
+## ObsBIL 378  -0.275  0.100  0.111  0.123  0.218  0.150   0.177   0.176
+## ObsIL 4-3   -0.307  0.101  0.112  0.126  0.199  0.155   0.197   0.191
+## ObsIL 5-4   -0.092  0.126  0.164  0.143  0.145  0.124   0.134   0.142
+## ObsIL 8-1-1 -0.028  0.114  0.141  0.114  0.120  0.115   0.110   0.116
+## ObsIL 9-1-2 -0.102  0.126  0.149  0.140  0.141  0.124   0.131   0.137
+## ObsPenn     -0.033  0.107  0.125  0.118  0.109  0.106   0.113   0.118
+## ObsSIL4-3-4 -0.252  0.098  0.110  0.118  0.174  0.157   0.176   0.174
+## ObsSIL5-4-1 -0.152  0.091  0.117  0.116  0.126  0.109   0.120   0.119
+## ObsSIL8-1-2 -0.017  0.097  0.122  0.099  0.099  0.098   0.093   0.094
+## ObsSIL8-1-3 -0.057  0.109  0.133  0.113  0.122  0.114   0.113   0.118
+## VpdA        -0.921 -0.079 -0.146 -0.005  0.164  0.060   0.171   0.148
+##             OBIL34 OBIL37 OIL4-3 OIL5-4 OIL8-1 OIL9-1 ObsPnn OSIL4- OSIL5-
+## ObsBIL 063                                                                
+## ObsBIL 118                                                                
+## ObsBIL 139                                                                
+## ObsBIL 180                                                                
+## ObsBIL 260                                                                
+## ObsBIL 267                                                                
+## ObsBIL 338                                                                
+## ObsBIL 342                                                                
+## ObsBIL 378   0.122                                                        
+## ObsIL 4-3    0.122  0.208                                                 
+## ObsIL 5-4    0.138  0.149  0.155                                          
+## ObsIL 8-1-1  0.158  0.126  0.127  0.152                                   
+## ObsIL 9-1-2  0.134  0.147  0.152  0.185  0.147                            
+## ObsPenn      0.119  0.114  0.115  0.132  0.126  0.129                     
+## ObsSIL4-3-4  0.121  0.192  0.196  0.145  0.126  0.144  0.115              
+## ObsSIL5-4-1  0.105  0.132  0.136  0.143  0.109  0.132  0.119  0.128       
+## ObsSIL8-1-2  0.140  0.105  0.104  0.126  0.136  0.121  0.111  0.105  0.095
+## ObsSIL8-1-3  0.154  0.128  0.129  0.146  0.160  0.141  0.120  0.126  0.108
+## VpdA        -0.067  0.163  0.194 -0.038 -0.100 -0.024 -0.077  0.141  0.055
+##             OSIL8-1-2 OSIL8-1-3
+## ObsBIL 063                     
+## ObsBIL 118                     
+## ObsBIL 139                     
+## ObsBIL 180                     
+## ObsBIL 260                     
+## ObsBIL 267                     
+## ObsBIL 338                     
+## ObsBIL 342                     
+## ObsBIL 378                     
+## ObsIL 4-3                      
+## ObsIL 5-4                      
+## ObsIL 8-1-1                    
+## ObsIL 9-1-2                    
+## ObsPenn                        
+## ObsSIL4-3-4                    
+## ObsSIL5-4-1                    
+## ObsSIL8-1-2                    
+## ObsSIL8-1-3  0.142             
+## VpdA        -0.094    -0.068
+drop1(bdc)# Suggests that dropping VpdA makes the model worse.
+
+## Single term deletions
+## 
+## Model:
+## Photo ~ Obs + VpdA + (1 | Row) + (1 | Col) + (1 | Date) + (1 | 
+##     Weeks)
+##        Df    AIC
+## <none>    1312.2
+## Obs    18 1307.6
+## VpdA    1 1394.8
+bdc2=lmer(Photo~Obs+VpdA+(1|Col)+(1|Date)+(1|Weeks),data=testset)
+anova(bdc,bdc2) #Keeping simpler model.
+## refitting model(s) with ML (instead of REML)
+## Data: testset
+## Models:
+## ..1: Photo ~ Obs + VpdA + (1 | Col) + (1 | Date) + (1 | Weeks)
+## object: Photo ~ Obs + VpdA + (1 | Row) + (1 | Col) + (1 | Date) + (1 | 
+## object:     Weeks)
+##        Df    AIC    BIC  logLik deviance Chisq Chi Df Pr(>Chisq)
+## ..1    24 1310.2 1399.1 -631.07   1262.2                        
+## object 25 1312.2 1404.8 -631.07   1262.2     0      1          1
+summary(bdc2)
+## Linear mixed model fit by REML t-tests use Satterthwaite approximations
+##   to degrees of freedom [merModLmerTest]
+## Formula: Photo ~ Obs + VpdA + (1 | Col) + (1 | Date) + (1 | Weeks)
+##    Data: testset
+## 
+## REML criterion at convergence: 1250.7
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -2.2019 -0.6263 -0.1220  0.5706  4.1182 
+## 
+## Random effects:
+##  Groups   Name        Variance Std.Dev.
+##  Col      (Intercept) 0.16500  0.4062  
+##  Date     (Intercept) 0.04824  0.2196  
+##  Weeks    (Intercept) 0.03188  0.1785  
+##  Residual             3.95753  1.9894  
+## Number of obs: 301, groups:  Col, 57; Date, 6; Weeks, 2
+## 
+## Fixed effects:
+##                  Estimate Std. Error        df t value Pr(>|t|)    
+## (Intercept)      10.37853    0.72846  49.00000  14.247  < 2e-16 ***
+## ObsBIL 063       -0.53016    0.75719 276.69000  -0.700  0.48441    
+## ObsBIL 118       -1.16636    0.64274 264.53000  -1.815  0.07071 .  
+## ObsBIL 139        0.09290    0.71637 279.43000   0.130  0.89692    
+## ObsBIL 180       -0.53644    0.60702 247.21000  -0.884  0.37771    
+## ObsBIL 260       -0.04890    0.68989 272.84000  -0.071  0.94354    
+## ObsBIL 267       -1.54655    0.64504 267.22000  -2.398  0.01719 *  
+## ObsBIL 338       -1.71231    0.62773 244.72000  -2.728  0.00684 ** 
+## ObsBIL 342        0.75983    0.63677 269.99000   1.193  0.23382    
+## ObsBIL 378       -0.58448    0.58965 239.58000  -0.991  0.32257    
+## ObsIL 4-3        -0.69258    0.55895 275.93000  -1.239  0.21637    
+## ObsIL 5-4         0.18905    0.56079 273.80000   0.337  0.73629    
+## ObsIL 8-1-1      -0.06175    0.60199 246.32000  -0.103  0.91838    
+## ObsIL 9-1-2       0.15740    0.57800 261.35000   0.272  0.78559    
+## ObsPenn          -2.20400    0.68525 278.55000  -3.216  0.00145 ** 
+## ObsSub IL 4-3-4  -0.23117    0.60281 259.67000  -0.383  0.70168    
+## ObsSub IL 5-4-1   0.66545    0.72156 265.80000   0.922  0.35725    
+## ObsSub IL 8-1-2  -0.57443    0.68711 279.42000  -0.836  0.40387    
+## ObsSub IL 8-1-3  -0.18577    0.62084 241.04000  -0.299  0.76503    
+## VpdA             -1.77790    0.18182  85.98000  -9.779 1.33e-15 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Correlation of Fixed Effects:
+##             (Intr) OBIL06 OBIL11 OBIL13 OBIL18 OBIL260 OBIL267 OBIL33
+## ObsBIL 063  -0.019                                                   
+## ObsBIL 118   0.023  0.137                                            
+## ObsBIL 139  -0.096  0.115  0.128                                     
+## ObsBIL 180  -0.270  0.097  0.105  0.120                              
+## ObsBIL 260  -0.161  0.089  0.103  0.106  0.143                       
+## ObsBIL 267  -0.271  0.088  0.097  0.111  0.168  0.127                
+## ObsBIL 338  -0.250  0.095  0.104  0.116  0.181  0.136   0.169        
+## ObsBIL 342  -0.053  0.104  0.128  0.108  0.115  0.110   0.108   0.109
+## ObsBIL 378  -0.275  0.100  0.111  0.123  0.218  0.150   0.177   0.176
+## ObsIL 4-3   -0.307  0.101  0.112  0.126  0.199  0.155   0.197   0.191
+## ObsIL 5-4   -0.092  0.126  0.164  0.143  0.145  0.124   0.134   0.142
+## ObsIL 8-1-1 -0.028  0.114  0.141  0.114  0.120  0.115   0.110   0.116
+## ObsIL 9-1-2 -0.102  0.126  0.149  0.140  0.141  0.124   0.131   0.137
+## ObsPenn     -0.033  0.107  0.125  0.118  0.109  0.106   0.113   0.118
+## ObsSIL4-3-4 -0.252  0.098  0.110  0.118  0.174  0.157   0.176   0.174
+## ObsSIL5-4-1 -0.152  0.091  0.117  0.116  0.126  0.109   0.120   0.119
+## ObsSIL8-1-2 -0.017  0.097  0.122  0.099  0.099  0.098   0.093   0.094
+## ObsSIL8-1-3 -0.057  0.109  0.133  0.113  0.122  0.114   0.113   0.118
+## VpdA        -0.921 -0.079 -0.146 -0.005  0.164  0.060   0.171   0.148
+##             OBIL34 OBIL37 OIL4-3 OIL5-4 OIL8-1 OIL9-1 ObsPnn OSIL4- OSIL5-
+## ObsBIL 063                                                                
+## ObsBIL 118                                                                
+## ObsBIL 139                                                                
+## ObsBIL 180                                                                
+## ObsBIL 260                                                                
+## ObsBIL 267                                                                
+## ObsBIL 338                                                                
+## ObsBIL 342                                                                
+## ObsBIL 378   0.122                                                        
+## ObsIL 4-3    0.122  0.208                                                 
+## ObsIL 5-4    0.138  0.149  0.155                                          
+## ObsIL 8-1-1  0.158  0.126  0.127  0.152                                   
+## ObsIL 9-1-2  0.134  0.147  0.152  0.185  0.147                            
+## ObsPenn      0.119  0.114  0.115  0.132  0.126  0.129                     
+## ObsSIL4-3-4  0.121  0.192  0.196  0.145  0.126  0.144  0.115              
+## ObsSIL5-4-1  0.105  0.132  0.136  0.143  0.109  0.132  0.119  0.128       
+## ObsSIL8-1-2  0.140  0.105  0.104  0.126  0.136  0.121  0.111  0.105  0.095
+## ObsSIL8-1-3  0.154  0.128  0.129  0.146  0.160  0.141  0.120  0.126  0.108
+## VpdA        -0.067  0.163  0.194 -0.038 -0.100 -0.024 -0.077  0.141  0.055
+##             OSIL8-1-2 OSIL8-1-3
+## ObsBIL 063                     
+## ObsBIL 118                     
+## ObsBIL 139                     
+## ObsBIL 180                     
+## ObsBIL 260                     
+## ObsBIL 267                     
+## ObsBIL 338                     
+## ObsBIL 342                     
+## ObsBIL 378                     
+## ObsIL 4-3                      
+## ObsIL 5-4                      
+## ObsIL 8-1-1                    
+## ObsIL 9-1-2                    
+## ObsPenn                        
+## ObsSIL4-3-4                    
+## ObsSIL5-4-1                    
+## ObsSIL8-1-2                    
+## ObsSIL8-1-3  0.142             
+## VpdA        -0.094    -0.068
+drop1(bdc2)
+## Single term deletions
+## 
+## Model:
+## Photo ~ Obs + VpdA + (1 | Col) + (1 | Date) + (1 | Weeks)
+##        Df    AIC
+## <none>    1310.2
+## Obs    18 1305.6
+## VpdA    1 1392.8
+bdc3=lmer(Photo~Obs+VpdA+(1|Col)+(1|Date),data=testset)
+anova(bdc2,bdc3)
+## refitting model(s) with ML (instead of REML)
+## Data: testset
+## Models:
+## ..1: Photo ~ Obs + VpdA + (1 | Col) + (1 | Date)
+## object: Photo ~ Obs + VpdA + (1 | Col) + (1 | Date) + (1 | Weeks)
+##        Df    AIC    BIC  logLik deviance Chisq Chi Df Pr(>Chisq)
+## ..1    23 1308.2 1393.4 -631.07   1262.2                        
+## object 24 1310.2 1399.1 -631.07   1262.2     0      1          1
+summary(bdc3)
+## Linear mixed model fit by REML t-tests use Satterthwaite approximations
+##   to degrees of freedom [merModLmerTest]
+## Formula: Photo ~ Obs + VpdA + (1 | Col) + (1 | Date)
+##    Data: testset
+## 
+## REML criterion at convergence: 1250.9
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -2.2068 -0.6296 -0.1315  0.5720  4.1355 
+## 
+## Random effects:
+##  Groups   Name        Variance Std.Dev.
+##  Col      (Intercept) 0.16448  0.4056  
+##  Date     (Intercept) 0.06873  0.2622  
+##  Residual             3.95776  1.9894  
+## Number of obs: 301, groups:  Col, 57; Date, 6
+## 
+## Fixed effects:
+##                  Estimate Std. Error        df t value Pr(>|t|)    
+## (Intercept)      10.48032    0.72297  65.51000  14.496  < 2e-16 ***
+## ObsBIL 063       -0.51920    0.75723 276.81000  -0.686  0.49350    
+## ObsBIL 118       -1.15404    0.64314 264.74000  -1.794  0.07389 .  
+## ObsBIL 139        0.08411    0.71672 279.35000   0.117  0.90666    
+## ObsBIL 180       -0.54491    0.60758 248.17000  -0.897  0.37067    
+## ObsBIL 260       -0.08704    0.69021 273.05000  -0.126  0.89974    
+## ObsBIL 267       -1.56759    0.64490 267.44000  -2.431  0.01572 *  
+## ObsBIL 338       -1.70774    0.62866 247.94000  -2.716  0.00706 ** 
+## ObsBIL 342        0.75946    0.63719 270.60000   1.192  0.23435    
+## ObsBIL 378       -0.60541    0.58975 239.52000  -1.027  0.30567    
+## ObsIL 4-3        -0.70367    0.55916 276.49000  -1.258  0.20930    
+## ObsIL 5-4         0.20115    0.56106 273.94000   0.359  0.72023    
+## ObsIL 8-1-1      -0.05571    0.60210 246.00000  -0.093  0.92636    
+## ObsIL 9-1-2       0.16040    0.57818 261.21000   0.277  0.78167    
+## ObsPenn          -2.20447    0.68550 278.52000  -3.216  0.00145 ** 
+## ObsSub IL 4-3-4  -0.25530    0.60280 259.51000  -0.424  0.67226    
+## ObsSub IL 5-4-1   0.64390    0.72137 266.12000   0.893  0.37287    
+## ObsSub IL 8-1-2  -0.57435    0.68762 279.87000  -0.835  0.40428    
+## ObsSub IL 8-1-3  -0.17662    0.62110 241.19000  -0.284  0.77637    
+## VpdA             -1.80358    0.18267  93.42000  -9.874 4.44e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Correlation of Fixed Effects:
+##             (Intr) OBIL06 OBIL11 OBIL13 OBIL18 OBIL260 OBIL267 OBIL33
+## ObsBIL 063  -0.019                                                   
+## ObsBIL 118   0.028  0.137                                            
+## ObsBIL 139  -0.098  0.115  0.127                                     
+## ObsBIL 180  -0.275  0.097  0.104  0.121                              
+## ObsBIL 260  -0.164  0.089  0.102  0.107  0.143                       
+## ObsBIL 267  -0.273  0.089  0.096  0.112  0.169  0.127                
+## ObsBIL 338  -0.255  0.095  0.103  0.116  0.182  0.136   0.170        
+## ObsBIL 342  -0.056  0.103  0.127  0.107  0.114  0.111   0.108   0.108
+## ObsBIL 378  -0.278  0.100  0.109  0.124  0.219  0.151   0.177   0.177
+## ObsIL 4-3   -0.309  0.102  0.112  0.126  0.200  0.154   0.197   0.193
+## ObsIL 5-4   -0.091  0.127  0.165  0.143  0.145  0.124   0.134   0.142
+## ObsIL 8-1-1 -0.031  0.113  0.141  0.113  0.120  0.116   0.111   0.115
+## ObsIL 9-1-2 -0.102  0.126  0.149  0.140  0.141  0.124   0.132   0.137
+## ObsPenn     -0.029  0.108  0.125  0.118  0.108  0.105   0.112   0.117
+## ObsSIL4-3-4 -0.254  0.098  0.109  0.118  0.174  0.157   0.176   0.174
+## ObsSIL5-4-1 -0.152  0.091  0.116  0.116  0.126  0.109   0.120   0.119
+## ObsSIL8-1-2 -0.016  0.097  0.122  0.099  0.097  0.098   0.093   0.092
+## ObsSIL8-1-3 -0.064  0.108  0.132  0.112  0.122  0.115   0.114   0.117
+## VpdA        -0.933 -0.079 -0.150 -0.003  0.167  0.062   0.171   0.150
+##             OBIL34 OBIL37 OIL4-3 OIL5-4 OIL8-1 OIL9-1 ObsPnn OSIL4- OSIL5-
+## ObsBIL 063                                                                
+## ObsBIL 118                                                                
+## ObsBIL 139                                                                
+## ObsBIL 180                                                                
+## ObsBIL 260                                                                
+## ObsBIL 267                                                                
+## ObsBIL 338                                                                
+## ObsBIL 342                                                                
+## ObsBIL 378   0.122                                                        
+## ObsIL 4-3    0.121  0.208                                                 
+## ObsIL 5-4    0.137  0.149  0.156                                          
+## ObsIL 8-1-1  0.158  0.127  0.127  0.152                                   
+## ObsIL 9-1-2  0.134  0.147  0.152  0.185  0.148                            
+## ObsPenn      0.119  0.113  0.113  0.132  0.126  0.128                     
+## ObsSIL4-3-4  0.121  0.192  0.196  0.145  0.127  0.144  0.114              
+## ObsSIL5-4-1  0.105  0.131  0.135  0.143  0.110  0.132  0.119  0.127       
+## ObsSIL8-1-2  0.141  0.104  0.103  0.125  0.136  0.120  0.111  0.104  0.094
+## ObsSIL8-1-3  0.155  0.128  0.129  0.144  0.160  0.140  0.120  0.127  0.109
+## VpdA        -0.064  0.164  0.193 -0.039 -0.096 -0.024 -0.080  0.141  0.053
+##             OSIL8-1-2 OSIL8-1-3
+## ObsBIL 063                     
+## ObsBIL 118                     
+## ObsBIL 139                     
+## ObsBIL 180                     
+## ObsBIL 260                     
+## ObsBIL 267                     
+## ObsBIL 338                     
+## ObsBIL 342                     
+## ObsBIL 378                     
+## ObsIL 4-3                      
+## ObsIL 5-4                      
+## ObsIL 8-1-1                    
+## ObsIL 9-1-2                    
+## ObsPenn                        
+## ObsSIL4-3-4                    
+## ObsSIL5-4-1                    
+## ObsSIL8-1-2                    
+## ObsSIL8-1-3  0.143             
+## VpdA        -0.096    -0.062
+bdc4=lmer(Photo~Obs+VpdA+(1|Col),data=testset)
+anova(bdc3,bdc4) # Simpilest Model, and best based on AIC.
+## refitting model(s) with ML (instead of REML)
+## Data: testset
+## Models:
+## ..1: Photo ~ Obs + VpdA + (1 | Col)
+## object: Photo ~ Obs + VpdA + (1 | Col) + (1 | Date)
+##        Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)
+## ..1    22 1306.4 1388.0 -631.22   1262.4                         
+## object 23 1308.2 1393.4 -631.07   1262.2 0.2901      1     0.5902
+summary(bdc4)
+## Linear mixed model fit by REML t-tests use Satterthwaite approximations
+##   to degrees of freedom [merModLmerTest]
+## Formula: Photo ~ Obs + VpdA + (1 | Col)
+##    Data: testset
+## 
+## REML criterion at convergence: 1251.7
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -2.1116 -0.6497 -0.1306  0.5611  4.1841 
+## 
+## Random effects:
+##  Groups   Name        Variance Std.Dev.
+##  Col      (Intercept) 0.151    0.3886  
+##  Residual             4.020    2.0049  
+## Number of obs: 301, groups:  Col, 57
+## 
+## Fixed effects:
+##                   Estimate Std. Error         df t value Pr(>|t|)    
+## (Intercept)      1.040e+01  6.714e-01  2.771e+02  15.487  < 2e-16 ***
+## ObsBIL 063      -5.218e-01  7.612e-01  2.802e+02  -0.686  0.49355    
+## ObsBIL 118      -1.211e+00  6.446e-01  2.643e+02  -1.878  0.06146 .  
+## ObsBIL 139       1.006e-01  7.190e-01  2.808e+02   0.140  0.88886    
+## ObsBIL 180      -5.518e-01  6.071e-01  2.451e+02  -0.909  0.36430    
+## ObsBIL 260      -2.665e-02  6.893e-01  2.736e+02  -0.039  0.96919    
+## ObsBIL 267      -1.576e+00  6.461e-01  2.660e+02  -2.440  0.01535 *  
+## ObsBIL 338      -1.759e+00  6.263e-01  2.435e+02  -2.808  0.00538 ** 
+## ObsBIL 342       8.014e-01  6.383e-01  2.690e+02   1.256  0.21034    
+## ObsBIL 378      -5.980e-01  5.900e-01  2.378e+02  -1.013  0.31186    
+## ObsIL 4-3       -7.576e-01  5.584e-01  2.752e+02  -1.357  0.17601    
+## ObsIL 5-4        1.655e-01  5.627e-01  2.748e+02   0.294  0.76893    
+## ObsIL 8-1-1      7.409e-04  6.030e-01  2.453e+02   0.001  0.99902    
+## ObsIL 9-1-2      1.619e-01  5.803e-01  2.628e+02   0.279  0.78049    
+## ObsPenn         -2.226e+00  6.882e-01  2.804e+02  -3.234  0.00137 ** 
+## ObsSub IL 4-3-4 -2.293e-01  6.037e-01  2.584e+02  -0.380  0.70444    
+## ObsSub IL 5-4-1  6.487e-01  7.241e-01  2.673e+02   0.896  0.37116    
+## ObsSub IL 8-1-2 -5.863e-01  6.893e-01  2.800e+02  -0.851  0.39570    
+## ObsSub IL 8-1-3 -1.299e-01  6.207e-01  2.401e+02  -0.209  0.83435    
+## VpdA            -1.781e+00  1.718e-01  2.663e+02 -10.365  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Correlation of Fixed Effects:
+##             (Intr) OBIL06 OBIL11 OBIL13 OBIL18 OBIL260 OBIL267 OBIL33
+## ObsBIL 063  -0.032                                                   
+## ObsBIL 118   0.005  0.135                                            
+## ObsBIL 139  -0.094  0.114  0.130                                     
+## ObsBIL 180  -0.273  0.098  0.111  0.116                              
+## ObsBIL 260  -0.141  0.093  0.111  0.104  0.139                       
+## ObsBIL 267  -0.268  0.091  0.102  0.109  0.163  0.121                
+## ObsBIL 338  -0.260  0.096  0.108  0.113  0.172  0.137   0.164        
+## ObsBIL 342  -0.059  0.107  0.131  0.112  0.121  0.113   0.112   0.118
+## ObsBIL 378  -0.271  0.103  0.116  0.121  0.210  0.143   0.171   0.172
+## ObsIL 4-3   -0.309  0.104  0.116  0.125  0.191  0.151   0.189   0.183
+## ObsIL 5-4   -0.116  0.125  0.161  0.145  0.147  0.131   0.137   0.143
+## ObsIL 8-1-1 -0.037  0.115  0.143  0.119  0.125  0.119   0.115   0.121
+## ObsIL 9-1-2 -0.117  0.126  0.148  0.142  0.143  0.127   0.134   0.139
+## ObsPenn     -0.044  0.107  0.124  0.117  0.112  0.108   0.114   0.121
+## ObsSIL4-3-4 -0.249  0.101  0.115  0.118  0.171  0.148   0.170   0.173
+## ObsSIL5-4-1 -0.148  0.093  0.119  0.113  0.124  0.104   0.117   0.121
+## ObsSIL8-1-2 -0.027  0.099  0.123  0.102  0.106  0.102   0.098   0.103
+## ObsSIL8-1-3 -0.067  0.112  0.137  0.117  0.128  0.119   0.119   0.124
+## VpdA        -0.936 -0.075 -0.136 -0.018  0.150  0.028   0.154   0.141
+##             OBIL34 OBIL37 OIL4-3 OIL5-4 OIL8-1 OIL9-1 ObsPnn OSIL4- OSIL5-
+## ObsBIL 063                                                                
+## ObsBIL 118                                                                
+## ObsBIL 139                                                                
+## ObsBIL 180                                                                
+## ObsBIL 260                                                                
+## ObsBIL 267                                                                
+## ObsBIL 338                                                                
+## ObsBIL 342                                                                
+## ObsBIL 378   0.126                                                        
+## ObsIL 4-3    0.129  0.201                                                 
+## ObsIL 5-4    0.142  0.153  0.157                                          
+## ObsIL 8-1-1  0.155  0.131  0.132  0.152                                   
+## ObsIL 9-1-2  0.137  0.149  0.153  0.181  0.146                            
+## ObsPenn      0.121  0.117  0.119  0.133  0.131  0.131                     
+## ObsSIL4-3-4  0.124  0.185  0.192  0.149  0.128  0.145  0.117              
+## ObsSIL5-4-1  0.107  0.128  0.134  0.145  0.113  0.133  0.118  0.124       
+## ObsSIL8-1-2  0.136  0.111  0.112  0.130  0.137  0.125  0.110  0.109  0.096
+## ObsSIL8-1-3  0.147  0.133  0.136  0.149  0.156  0.144  0.124  0.131  0.113
+## VpdA        -0.068  0.143  0.178 -0.026 -0.100 -0.021 -0.075  0.124  0.040
+##             OSIL8-1-2 OSIL8-1-3
+## ObsBIL 063                     
+## ObsBIL 118                     
+## ObsBIL 139                     
+## ObsBIL 180                     
+## ObsBIL 260                     
+## ObsBIL 267                     
+## ObsBIL 338                     
+## ObsBIL 342                     
+## ObsBIL 378                     
+## ObsIL 4-3                      
+## ObsIL 5-4                      
+## ObsIL 8-1-1                    
+## ObsIL 9-1-2                    
+## ObsPenn                        
+## ObsSIL4-3-4                    
+## ObsSIL5-4-1                    
+## ObsSIL8-1-2                    
+## ObsSIL8-1-3  0.139             
+## VpdA        -0.090    -0.066
+This model says BIL267, 338 and Penn are sig. different and 118 is close.
+
+drop1(bdc4) # VpdA is good. I'm just ignoring its Obs output.
+## Single term deletions
+## 
+## Model:
+## Photo ~ Obs + VpdA + (1 | Col)
+##        Df    AIC
+## <none>    1306.4
+## Obs    18 1303.4
+## VpdA    1 1400.1
+##
+
+## PLOTS
+plot(bdc4,resid(.,type="pearson")~fitted(.)|Obs) # No distinct patterns.
+
+plot(bdc4, Obs~resid(.))
+
+plot(bdc4, Photo~fitted(.)|Obs)
+
+#Use bdc4 for prediction.
+
+testset$pred=predict(bdc4,re.form=NA)
+ggplot(testset,aes(Obs,pred,fill=Obs))+stat_summary(fun.data=plot.summary,geom="bar")+stat_summary(fun.data=plot.summary,geom="errorbar")+theme(axis.text.x=element_text(angle=90))+facet_wrap(~Weeks)+guides(fill=guide_legend(ncol=2))
+
+VPD vs Photo plots for each line with VPD binned at 0.5
+
+ggplot(testset,aes(round_any(VpdA,0.5),Photo))+stat_summary(fun.data=plot.summary,geom="point")+stat_summary(fun.data=plot.summary,geom="errorbar",width=0.1)+guides(colour=guide_legend(ncol=2))+facet_wrap(~Obs,ncol=4)+stat_smooth(method="loess",se=F)+xlab("VPD")
+
+##Testing residuals. Taken essentially from Julin’s script.
+
+## RESIDUALS
+lmtest=lm(Photo~VpdA,data=testset)
+summary(lmtest)
+
+testset$resid=residuals(lmtest)
+
+ggplot(testset,aes(Obs,resid,colour=Obs))+stat_summary(fun.data=plot.summary,geom="point",size=3)+stat_summary(fun.data=plot.summary,geom="errorbar")+theme(axis.text.x=element_text(angle=90))+guides(colour=guide_legend(ncol=2))+facet_wrap(~Weeks)
+
+ggplot(testset,aes(Obs,resid,colour=Obs))+stat_summary(fun.data=plot.summary,geom="point",size=3)+stat_summary(fun.data=plot.summary,geom="errorbar")+theme(axis.text.x=element_text(angle=90))+guides(colour=guide_legend(ncol=2))
+
+bdc5=lmer(resid~Obs+VpdA+(1|Row)+(1|Col)+(1|Date)+(1|Weeks),data=testset)
+summary(bdc5)
+
+bdc6=lmer(resid~Obs+VpdA+(1|Row)+(1|Col)+(1|Weeks),data=testset)
+anova(bdc5,bdc6)
+## refitting model(s) with ML (instead of REML)
+
+summary(bdc6)
+
+bdc7=lmer(resid~Obs+VpdA+(1|Col),data=testset)
+anova(bdc6,bdc7)
+
+## refitting model(s) with ML (instead of REML)
+## Data: testset
+## Models:
+## ..1: resid ~ Obs + VpdA + (1 | Col)
+## object: resid ~ Obs + VpdA + (1 | Row) + (1 | Col) + (1 | Weeks)
+##        Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)
+## ..1    22 1306.4 1388.0 -631.22   1262.4                         
+## object 24 1310.4 1399.3 -631.19   1262.4 0.0542      2     0.9733
+
+summary(bdc7)
+
+Residuals agree Penn, 338 and 267 are sig. and 118 is very close. Variance and likely low replication is knocking out other potential lines here.
+
+#BLOCK A
+#BLOCK A PHOTOSYNTHESIS MODEL M82, bip2 and bip3
+
+## COMBINED BLOCKS PLOT
+list=c("A")
+testseta=droplevels(comb.data[comb.data$Block %in% list,])
+testseta=droplevels(comb.data[grepl("M82|bip2|bip3",comb.data$Obs),])
+# levels(testseta$Obs)
+ggplot(testseta,aes(Obs,Photo,fill=Obs))+geom_boxplot()+theme(axis.text.x=element_text(angle=90))#+facet_wrap(~Weeks)
+
+ggplot(testseta,aes(Obs,Photo,fill=Obs))+stat_summary(fun.data=plot.summary,geom="bar")+stat_summary(fun.data=plot.summary,geom="errorbar")+facet_wrap(~ Weeks)+theme(axis.text.x  = element_text(angle=90, vjust=0.5))#+stat_smooth(method="lm",se=F)
+
+## MODELS
+lma=lmer(Photo~Obs+VpdA+(1|Row)+(1|Col)+(1|Date)+(1|Weeks),data=testseta)
+summary(lma)
+
+drop=drop1(lma)
+drop
+lma2=lmer(Photo~Obs+VpdA+(1|Row)+(1|Col)+(1|Weeks),data=testseta)
+anova(lma,lma2)
+## refitting model(s) with ML (instead of REML)
+summary(lma2)
+lma3=lmer(Photo~Obs+VpdA+(1|Col)+(1|Weeks),data=testseta)
+anova(lma2,lma3)
+## refitting model(s) with ML (instead of REML)
+summary(lma3)
+lma4=lmer(Photo~Obs+VpdA+(1|Col),data=testseta)
+anova(lma3,lma4)
+## refitting model(s) with ML (instead of REML)
+summary(lma4)
+##lma4 is the simpilest model. Predictions run from it.
+## PLOTS
+##variance checks: to see if your model is good; fitted vs model, should yield no pattern. fitted vs original should show pattern
+plot(lma4,resid(.,type="pearson")~fitted(.)|Obs)
+plot(lma4, Obs~resid(.))
+plot(lma4, Photo~fitted(.)|Obs)
+testseta$pred=predict(lma4,re.form=NA)
+ggplot(testseta,aes(Obs,pred,fill=Obs))+stat_summary(fun.data=plot.summary,geom="bar")+stat_summary(fun.data=plot.summary,geom="errorbar")+theme(axis.text.x=element_text(angle=90))+facet_wrap(~Weeks)
 
